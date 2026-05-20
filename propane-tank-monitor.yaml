@@ -1,8 +1,8 @@
 substitutions:
   name: propane-tank-monitor
   friendly_name: Propane Tank Monitor
-  dout_pin: D6
-  clk_pin: D5
+  dout_pin: GPIO12
+  clk_pin: GPIO14
   update_period_default_s: "5"
 
 esphome:
@@ -10,7 +10,7 @@ esphome:
   friendly_name: ${friendly_name}
 
 esp8266:
-  board: nodemcuv2
+  board: huzzah
 
 logger:
 
@@ -57,6 +57,16 @@ number:
     max_value: 200
     step: 0.1
     initial_value: 34.0
+  - platform: template
+    name: "Regulator Weight"
+    id: regulator_weight
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 20
+    step: 0.01
+    initial_value: 0.0
   - platform: template
     name: "Sensor Update Period"
     id: sensor_update_period_s
@@ -108,15 +118,18 @@ sensor:
       const float weight = id(tank_weight_kg).state;
       const float empty_weight = id(tank_empty_weight).state;
       const float full_weight = id(tank_full_weight).state;
-      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || full_weight <= empty_weight) {
+      const float regulator = id(regulator_weight).state;
+      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || isnan(regulator) || full_weight <= empty_weight) {
         return NAN;
       }
-      const float remaining = weight - empty_weight;
+      const float effective_empty = empty_weight + regulator;
+      const float max_propane = full_weight - empty_weight;
+      const float remaining = weight - effective_empty;
       if (remaining < 0.0f) {
         return 0.0f;
       }
-      if (remaining > (full_weight - empty_weight)) {
-        return full_weight - empty_weight;
+      if (remaining > max_propane) {
+        return max_propane;
       }
       return remaining;
   - platform: template
@@ -128,10 +141,13 @@ sensor:
       const float weight = id(tank_weight_kg).state;
       const float empty_weight = id(tank_empty_weight).state;
       const float full_weight = id(tank_full_weight).state;
-      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || full_weight <= empty_weight) {
+      const float regulator = id(regulator_weight).state;
+      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || isnan(regulator) || full_weight <= empty_weight) {
         return NAN;
       }
-      float fill = ((weight - empty_weight) / (full_weight - empty_weight)) * 100.0f;
+      const float effective_empty = empty_weight + regulator;
+      const float max_propane = full_weight - empty_weight;
+      float fill = ((weight - effective_empty) / max_propane) * 100.0f;
       if (fill < 0.0f) {
         fill = 0.0f;
       }

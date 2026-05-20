@@ -11,8 +11,8 @@ ESPHome project for an ESP8266 connected to an HX711 load-cell board. The goal i
 
 Default pin mapping in the ESPHome config:
 
-- HX711 `DT` -> `D6`
-- HX711 `SCK` -> `D5`
+- HX711 `DT` -> `GPIO12` (Feather pin `12`)
+- HX711 `SCK` -> `GPIO14` (Feather pin `14`)
 - HX711 `VCC` -> `3.3V`
 - HX711 `GND` -> `GND`
 
@@ -35,15 +35,16 @@ If your board uses different GPIO labels, update the `dout_pin` and `clk_pin` su
 The project exposes:
 
 - `Tank Weight` in kilograms
+- `Regulator Weight` in kilograms
 - `Propane Remaining` in kilograms
 - `Propane Fill Level` as a percentage
 - `Sensor Update Period` in seconds
 
-To calibrate the scale, replace the placeholder `calibrate_linear` points with your own known readings. Once the weight reading is correct, use the `Tank Empty Weight` and `Tank Full Weight` entities to define the fill range.
+To calibrate the scale, replace the placeholder `calibrate_linear` points with your own known readings. Once the weight reading is correct, use the `Tank Empty Weight`, `Tank Full Weight`, and `Regulator Weight` entities to define the fill range.
 
 Use `Sensor Update Period` to control how often the HX711 is polled, without reflashing.
 
 ## Notes
 
-- The default board is `nodemcuv2`. Change it if your ESP8266 uses a different board definition.
+- The default board is `huzzah` (Adafruit Feather HUZZAH ESP8266). Change it if your hardware uses a different board definition.
 - `web_server` is enabled for quick local inspection. Remove it if you do not want the extra web UI.
