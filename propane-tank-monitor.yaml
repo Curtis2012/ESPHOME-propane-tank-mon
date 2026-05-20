@@ -1,0 +1,141 @@
+substitutions:
+  name: propane-tank-monitor
+  friendly_name: Propane Tank Monitor
+  dout_pin: D6
+  clk_pin: D5
+  update_period_default_s: "5"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: nodemcuv2
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+
+web_server:
+  port: 80
+
+globals:
+  - id: last_hx711_update_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+number:
+  - platform: template
+    name: "Tank Empty Weight"
+    id: tank_empty_weight
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 200
+    step: 0.1
+    initial_value: 18.0
+  - platform: template
+    name: "Tank Full Weight"
+    id: tank_full_weight
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 200
+    step: 0.1
+    initial_value: 34.0
+  - platform: template
+    name: "Sensor Update Period"
+    id: sensor_update_period_s
+    unit_of_measurement: s
+    optimistic: true
+    restore_value: true
+    min_value: 1
+    max_value: 3600
+    step: 1
+    initial_value: ${update_period_default_s}
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          const uint32_t period_ms = (uint32_t) (id(sensor_update_period_s).state * 1000.0f);
+          const uint32_t safe_period_ms = period_ms < 1000 ? 1000 : period_ms;
+          if ((now - id(last_hx711_update_ms)) >= safe_period_ms) {
+            id(last_hx711_update_ms) = now;
+            id(tank_weight_kg).update();
+          }
+
+sensor:
+  - platform: hx711
+    id: tank_weight_kg
+    name: "Tank Weight"
+    dout_pin: ${dout_pin}
+    clk_pin: ${clk_pin}
+    gain: 128
+    update_interval: never
+    unit_of_measurement: kg
+    accuracy_decimals: 2
+    filters:
+      - calibrate_linear:
+          - 100000.0 -> 0.0
+          - 120000.0 -> 10.0
+      - lambda: |-
+          if (x < 0) {
+            return 0.0f;
+          }
+          return x;
+  - platform: template
+    name: "Propane Remaining"
+    unit_of_measurement: kg
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      const float weight = id(tank_weight_kg).state;
+      const float empty_weight = id(tank_empty_weight).state;
+      const float full_weight = id(tank_full_weight).state;
+      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || full_weight <= empty_weight) {
+        return NAN;
+      }
+      const float remaining = weight - empty_weight;
+      if (remaining < 0.0f) {
+        return 0.0f;
+      }
+      if (remaining > (full_weight - empty_weight)) {
+        return full_weight - empty_weight;
+      }
+      return remaining;
+  - platform: template
+    name: "Propane Fill Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      const float weight = id(tank_weight_kg).state;
+      const float empty_weight = id(tank_empty_weight).state;
+      const float full_weight = id(tank_full_weight).state;
+      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || full_weight <= empty_weight) {
+        return NAN;
+      }
+      float fill = ((weight - empty_weight) / (full_weight - empty_weight)) * 100.0f;
+      if (fill < 0.0f) {
+        fill = 0.0f;
+      }
+      if (fill > 100.0f) {
+        fill = 100.0f;
+      }
+      return fill;
