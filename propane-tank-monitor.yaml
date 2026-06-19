@@ -35,6 +35,10 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: "0"
+  - id: tare_offset_kg
+    type: float
+    restore_value: yes
+    initial_value: "0.0"
 
 select:
   - platform: template
@@ -53,6 +57,20 @@ switch:
     id: calibration_mode
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
+
+button:
+  - platform: template
+    name: "Tare Scale"
+    id: tare_scale
+    on_press:
+      - lambda: |-
+          if (isnan(id(tank_weight_kg).state)) {
+            ESP_LOGW("tare", "Tare requested but current weight is not available yet");
+            return;
+          }
+          id(tare_offset_kg) -= id(tank_weight_kg).state;
+          ESP_LOGI("tare", "Tare applied. New tare offset: %.4f kg", id(tare_offset_kg));
+          id(tank_weight_kg).update();
 
 number:
   - platform: template
@@ -167,6 +185,7 @@ sensor:
           if (id(calibration_mode).state) {
             adjusted += id(calibration_offset_kg).state;
           }
+          adjusted += id(tare_offset_kg);
           if (adjusted < 0) {
             return 0.0f;
           }
