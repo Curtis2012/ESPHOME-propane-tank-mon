@@ -116,7 +116,7 @@ number:
     min_value: 0
     max_value: 200
     step: 0.1
-    initial_value: 5.8967
+    initial_value: 6.53 
   - platform: template
     name: "PanaGas Capacity"
     id: tank_2_capacity
@@ -126,7 +126,7 @@ number:
     min_value: 0
     max_value: 100
     step: 0.1
-    initial_value: 11.3398
+    initial_value: 11.34 
   - platform: template
     name: "PanaGas Regulator Weight"
     id: tank_2_regulator_weight
