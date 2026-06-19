@@ -14,9 +14,13 @@ esp8266:
 
 logger:
 
-api:
-  encryption:
-    key: !secret api_encryption_key
+mqtt:
+  broker: !secret mqtt_broker
+  port: !secret mqtt_port
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: true
+  topic_prefix: !secret mqtt_topic_prefix
 
 ota:
   - platform: esphome
