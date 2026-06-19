@@ -25,7 +25,7 @@ If your board uses different GPIO labels, update the `dout_pin` and `clk_pin` su
 
 ## Setup
 
-1. Fill in your Wi-Fi credentials, API key, and OTA password in `secrets.yaml`.
+1. Fill in your Wi-Fi, MQTT broker, and OTA settings in `secrets.yaml`.
 2. Adjust the HX711 calibration points in `propane-tank-monitor.yaml` to match your scale.
 3. In Home Assistant, set both tank profiles:
 	- Tank 1: `Tank 1 Tare Weight`, `Tank 1 Capacity`, `Tank 1 Regulator Weight`
