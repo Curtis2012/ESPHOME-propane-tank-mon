@@ -50,10 +50,10 @@ select:
     id: active_tank_profile
     optimistic: true
     restore_value: true
-    initial_option: "Tank 1"
+    initial_option: "TropiGas"
     options:
-      - "Tank 1"
-      - "Tank 2"
+      - "TropiGas"
+      - "PanaGas"
 
 switch:
   - platform: template
@@ -78,7 +78,7 @@ button:
 
 number:
   - platform: template
-    name: "Tank 1 Tare Weight"
+    name: "TropiGas Tare Weight"
     id: tank_1_tare_weight
     unit_of_measurement: kg
     optimistic: true
@@ -88,7 +88,7 @@ number:
     step: 0.1
     initial_value: 5.8967
   - platform: template
-    name: "Tank 1 Capacity"
+    name: "TropiGas Capacity"
     id: tank_1_capacity
     unit_of_measurement: kg
     optimistic: true
@@ -98,7 +98,7 @@ number:
     step: 0.1
     initial_value: 11.3398
   - platform: template
-    name: "Tank 1 Regulator Weight"
+    name: "TropiGas Regulator Weight"
     id: tank_1_regulator_weight
     unit_of_measurement: kg
     optimistic: true
@@ -108,7 +108,7 @@ number:
     step: 0.01
     initial_value: 0.5
   - platform: template
-    name: "Tank 2 Tare Weight"
+    name: "PanaGas Tare Weight"
     id: tank_2_tare_weight
     unit_of_measurement: kg
     optimistic: true
@@ -118,7 +118,7 @@ number:
     step: 0.1
     initial_value: 5.8967
   - platform: template
-    name: "Tank 2 Capacity"
+    name: "PanaGas Capacity"
     id: tank_2_capacity
     unit_of_measurement: kg
     optimistic: true
@@ -128,7 +128,7 @@ number:
     step: 0.1
     initial_value: 11.3398
   - platform: template
-    name: "Tank 2 Regulator Weight"
+    name: "PanaGas Regulator Weight"
     id: tank_2_regulator_weight
     unit_of_measurement: kg
     optimistic: true
@@ -201,7 +201,7 @@ sensor:
     update_interval: 5s
     lambda: |-
       const float weight = id(tank_weight_kg).state;
-      const bool tank_2_active = id(active_tank_profile).current_option() == "Tank 2";
+      const bool tank_2_active = id(active_tank_profile).current_option() == "PanaGas";
       const float tare_weight = tank_2_active ? id(tank_2_tare_weight).state : id(tank_1_tare_weight).state;
       const float capacity = tank_2_active ? id(tank_2_capacity).state : id(tank_1_capacity).state;
       const float regulator = tank_2_active ? id(tank_2_regulator_weight).state : id(tank_1_regulator_weight).state;
@@ -226,7 +226,7 @@ sensor:
     update_interval: 5s
     lambda: |-
       const float weight = id(tank_weight_kg).state;
-      const bool tank_2_active = id(active_tank_profile).current_option() == "Tank 2";
+      const bool tank_2_active = id(active_tank_profile).current_option() == "PanaGas";
       const float tare_weight = tank_2_active ? id(tank_2_tare_weight).state : id(tank_1_tare_weight).state;
       const float capacity = tank_2_active ? id(tank_2_capacity).state : id(tank_1_capacity).state;
       const float regulator = tank_2_active ? id(tank_2_regulator_weight).state : id(tank_1_regulator_weight).state;
@@ -242,7 +242,7 @@ sensor:
       if (fill > 100.0f) {
         fill = 100.0f;
       }
-      ESP_LOGI("tank_level", "Published tank percent: %.1f%% (active=%s)", fill, tank_2_active ? "Tank 2" : "Tank 1");
+      ESP_LOGI("tank_level", "Published tank percent: %.1f%% (active=%s)", fill, tank_2_active ? "PanaGas" : "TropiGas");
       return fill;
   - platform: template
     name: "Propane Fill Level"
