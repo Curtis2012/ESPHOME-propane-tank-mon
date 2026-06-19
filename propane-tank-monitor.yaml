@@ -1,8 +1,8 @@
 substitutions:
   name: propane-tank-monitor
   friendly_name: Propane Tank Monitor
-  dout_pin: GPIO12
-  clk_pin: GPIO14
+  dout_pin: GPIO4
+  clk_pin: GPIO5
   update_period_default_s: "5"
 
 esphome:
@@ -36,36 +36,94 @@ globals:
     restore_value: no
     initial_value: "0"
 
+select:
+  - platform: template
+    name: "Active Tank"
+    id: active_tank_profile
+    optimistic: true
+    restore_value: true
+    initial_option: "Tank 1"
+    options:
+      - "Tank 1"
+      - "Tank 2"
+
+switch:
+  - platform: template
+    name: "Calibration Mode"
+    id: calibration_mode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
 number:
   - platform: template
-    name: "Tank Empty Weight"
-    id: tank_empty_weight
+    name: "Tank 1 Tare Weight"
+    id: tank_1_tare_weight
     unit_of_measurement: kg
     optimistic: true
     restore_value: true
     min_value: 0
     max_value: 200
     step: 0.1
-    initial_value: 18.0
+    initial_value: 5.8967
   - platform: template
-    name: "Tank Full Weight"
-    id: tank_full_weight
+    name: "Tank 1 Capacity"
+    id: tank_1_capacity
     unit_of_measurement: kg
     optimistic: true
     restore_value: true
     min_value: 0
-    max_value: 200
+    max_value: 100
     step: 0.1
-    initial_value: 34.0
+    initial_value: 11.3398
   - platform: template
-    name: "Regulator Weight"
-    id: regulator_weight
+    name: "Tank 1 Regulator Weight"
+    id: tank_1_regulator_weight
     unit_of_measurement: kg
     optimistic: true
     restore_value: true
     min_value: 0
     max_value: 20
     step: 0.01
+    initial_value: 0.5
+  - platform: template
+    name: "Tank 2 Tare Weight"
+    id: tank_2_tare_weight
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 200
+    step: 0.1
+    initial_value: 5.8967
+  - platform: template
+    name: "Tank 2 Capacity"
+    id: tank_2_capacity
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 0.1
+    initial_value: 11.3398
+  - platform: template
+    name: "Tank 2 Regulator Weight"
+    id: tank_2_regulator_weight
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 20
+    step: 0.01
+    initial_value: 0.5
+  - platform: template
+    name: "Calibration Offset"
+    id: calibration_offset_kg
+    unit_of_measurement: kg
+    optimistic: true
+    restore_value: true
+    min_value: -50
+    max_value: 50
+    step: 0.0001
     initial_value: 0.0
   - platform: template
     name: "Sensor Update Period"
@@ -105,10 +163,14 @@ sensor:
           - 100000.0 -> 0.0
           - 120000.0 -> 10.0
       - lambda: |-
-          if (x < 0) {
+          float adjusted = x;
+          if (id(calibration_mode).state) {
+            adjusted += id(calibration_offset_kg).state;
+          }
+          if (adjusted < 0) {
             return 0.0f;
           }
-          return x;
+          return adjusted;
   - platform: template
     name: "Propane Remaining"
     unit_of_measurement: kg
@@ -116,14 +178,15 @@ sensor:
     update_interval: 5s
     lambda: |-
       const float weight = id(tank_weight_kg).state;
-      const float empty_weight = id(tank_empty_weight).state;
-      const float full_weight = id(tank_full_weight).state;
-      const float regulator = id(regulator_weight).state;
-      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || isnan(regulator) || full_weight <= empty_weight) {
+      const bool tank_2_active = id(active_tank_profile).current_option() == "Tank 2";
+      const float tare_weight = tank_2_active ? id(tank_2_tare_weight).state : id(tank_1_tare_weight).state;
+      const float capacity = tank_2_active ? id(tank_2_capacity).state : id(tank_1_capacity).state;
+      const float regulator = tank_2_active ? id(tank_2_regulator_weight).state : id(tank_1_regulator_weight).state;
+      if (isnan(weight) || isnan(tare_weight) || isnan(capacity) || isnan(regulator) || capacity <= 0.0f) {
         return NAN;
       }
-      const float effective_empty = empty_weight + regulator;
-      const float max_propane = full_weight - empty_weight;
+      const float effective_empty = tare_weight + regulator;
+      const float max_propane = capacity;
       const float remaining = weight - effective_empty;
       if (remaining < 0.0f) {
         return 0.0f;
@@ -133,20 +196,22 @@ sensor:
       }
       return remaining;
   - platform: template
-    name: "Propane Fill Level"
+    name: "Tank Percent Full"
+    id: tank_percent_full
     unit_of_measurement: "%"
     accuracy_decimals: 0
     update_interval: 5s
     lambda: |-
       const float weight = id(tank_weight_kg).state;
-      const float empty_weight = id(tank_empty_weight).state;
-      const float full_weight = id(tank_full_weight).state;
-      const float regulator = id(regulator_weight).state;
-      if (isnan(weight) || isnan(empty_weight) || isnan(full_weight) || isnan(regulator) || full_weight <= empty_weight) {
+      const bool tank_2_active = id(active_tank_profile).current_option() == "Tank 2";
+      const float tare_weight = tank_2_active ? id(tank_2_tare_weight).state : id(tank_1_tare_weight).state;
+      const float capacity = tank_2_active ? id(tank_2_capacity).state : id(tank_1_capacity).state;
+      const float regulator = tank_2_active ? id(tank_2_regulator_weight).state : id(tank_1_regulator_weight).state;
+      if (isnan(weight) || isnan(tare_weight) || isnan(capacity) || isnan(regulator) || capacity <= 0.0f) {
         return NAN;
       }
-      const float effective_empty = empty_weight + regulator;
-      const float max_propane = full_weight - empty_weight;
+      const float effective_empty = tare_weight + regulator;
+      const float max_propane = capacity;
       float fill = ((weight - effective_empty) / max_propane) * 100.0f;
       if (fill < 0.0f) {
         fill = 0.0f;
@@ -154,4 +219,12 @@ sensor:
       if (fill > 100.0f) {
         fill = 100.0f;
       }
+      ESP_LOGI("tank_level", "Published tank percent: %.1f%% (active=%s)", fill, tank_2_active ? "Tank 2" : "Tank 1");
       return fill;
+  - platform: template
+    name: "Propane Fill Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(tank_percent_full).state;
