@@ -86,7 +86,7 @@ number:
     min_value: 0
     max_value: 200
     step: 0.1
-    initial_value: 5.8967
+    initial_value: 6.35 
   - platform: template
     name: "TropiGas Capacity"
     id: tank_1_capacity
@@ -96,7 +96,7 @@ number:
     min_value: 0
     max_value: 100
     step: 0.1
-    initial_value: 11.3398
+    initial_value: 11.34 
   - platform: template
     name: "TropiGas Regulator Weight"
     id: tank_1_regulator_weight
@@ -106,7 +106,7 @@ number:
     min_value: 0
     max_value: 20
     step: 0.01
-    initial_value: 0.5
+    initial_value: 0.0
   - platform: template
     name: "PanaGas Tare Weight"
     id: tank_2_tare_weight
@@ -182,8 +182,8 @@ sensor:
     accuracy_decimals: 2
     filters:
       - calibrate_linear:
-          - 100000.0 -> 0.0
-          - 120000.0 -> 10.0
+        - 169131.0 -> 0.0
+        - 365592.0 -> 8.0
       - lambda: |-
           float adjusted = x;
           if (id(calibration_mode).state) {
@@ -208,16 +208,15 @@ sensor:
       if (isnan(weight) || isnan(tare_weight) || isnan(capacity) || isnan(regulator) || capacity <= 0.0f) {
         return NAN;
       }
-      const float effective_empty = tare_weight + regulator;
-      const float max_propane = capacity;
-      const float remaining = weight - effective_empty;
-      if (remaining < 0.0f) {
+      const float tank_without_regulator = weight - regulator;
+      const float propane_kg = tank_without_regulator - tare_weight;
+      if (propane_kg < 0.0f) {
         return 0.0f;
       }
-      if (remaining > max_propane) {
-        return max_propane;
+      if (propane_kg > capacity) {
+        return capacity;
       }
-      return remaining;
+      return propane_kg;
   - platform: template
     name: "Tank Percent Full"
     id: tank_percent_full
@@ -233,9 +232,9 @@ sensor:
       if (isnan(weight) || isnan(tare_weight) || isnan(capacity) || isnan(regulator) || capacity <= 0.0f) {
         return NAN;
       }
-      const float effective_empty = tare_weight + regulator;
-      const float max_propane = capacity;
-      float fill = ((weight - effective_empty) / max_propane) * 100.0f;
+      const float tank_without_regulator = weight - regulator;
+      const float propane_kg = tank_without_regulator - tare_weight;
+      float fill = (propane_kg / capacity) * 100.0f;
       if (fill < 0.0f) {
         fill = 0.0f;
       }
