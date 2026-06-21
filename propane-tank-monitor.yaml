@@ -43,6 +43,106 @@ globals:
     type: float
     restore_value: yes
     initial_value: "0.0"
+  - id: propane_hist_count
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: propane_hist_0
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_1
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_2
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_3
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_4
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_5
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_6
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_7
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_8
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_9
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_10
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_11
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_12
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_13
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_14
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_15
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_16
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_17
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_18
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_19
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_20
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_21
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_22
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
+  - id: propane_hist_23
+    type: float
+    restore_value: no
+    initial_value: "-1.0"
 
 select:
   - platform: template
@@ -169,6 +269,42 @@ interval:
             id(last_hx711_update_ms) = now;
             id(tank_weight_kg).update();
           }
+  - interval: 1h
+    then:
+      - lambda: |-
+          const float remaining = id(propane_remaining_kg).state;
+          if (isnan(remaining) || remaining < 0.0f) {
+            return;
+          }
+
+          id(propane_hist_23) = id(propane_hist_22);
+          id(propane_hist_22) = id(propane_hist_21);
+          id(propane_hist_21) = id(propane_hist_20);
+          id(propane_hist_20) = id(propane_hist_19);
+          id(propane_hist_19) = id(propane_hist_18);
+          id(propane_hist_18) = id(propane_hist_17);
+          id(propane_hist_17) = id(propane_hist_16);
+          id(propane_hist_16) = id(propane_hist_15);
+          id(propane_hist_15) = id(propane_hist_14);
+          id(propane_hist_14) = id(propane_hist_13);
+          id(propane_hist_13) = id(propane_hist_12);
+          id(propane_hist_12) = id(propane_hist_11);
+          id(propane_hist_11) = id(propane_hist_10);
+          id(propane_hist_10) = id(propane_hist_9);
+          id(propane_hist_9) = id(propane_hist_8);
+          id(propane_hist_8) = id(propane_hist_7);
+          id(propane_hist_7) = id(propane_hist_6);
+          id(propane_hist_6) = id(propane_hist_5);
+          id(propane_hist_5) = id(propane_hist_4);
+          id(propane_hist_4) = id(propane_hist_3);
+          id(propane_hist_3) = id(propane_hist_2);
+          id(propane_hist_2) = id(propane_hist_1);
+          id(propane_hist_1) = id(propane_hist_0);
+          id(propane_hist_0) = remaining;
+
+          if (id(propane_hist_count) < 24) {
+            id(propane_hist_count) += 1;
+          }
 
 sensor:
   - platform: hx711
@@ -196,6 +332,7 @@ sensor:
           return adjusted;
   - platform: template
     name: "Propane Remaining"
+    id: propane_remaining_kg
     unit_of_measurement: kg
     accuracy_decimals: 2
     update_interval: 5s
@@ -217,6 +354,58 @@ sensor:
         return capacity;
       }
       return propane_kg;
+  - platform: template
+    name: "Propane Used (24h)"
+    id: propane_used_24h_kg
+    unit_of_measurement: kg
+    accuracy_decimals: 2
+    update_interval: 60s
+    lambda: |-
+      const float current = id(propane_remaining_kg).state;
+      if (isnan(current)) return NAN;
+      const int count = id(propane_hist_count);
+      if (count == 0) return NAN;
+      float used, hours;
+      if (count < 24) {
+        // Less than 24h of data — extrapolate from the last 1h sample
+        if (id(propane_hist_0) < 0.0f) return NAN;
+        used = id(propane_hist_0) - current;
+        hours = 1.0f;
+      } else {
+        // Full 24h window available
+        if (id(propane_hist_23) < 0.0f) return NAN;
+        used = id(propane_hist_23) - current;
+        hours = 24.0f;
+      }
+      // Extrapolate to a 24-hour equivalent
+      const float used_24h = (used / hours) * 24.0f;
+      return (used_24h <= 0.0f) ? 0.0f : used_24h;
+  - platform: template
+    name: "Projected Days Remaining"
+    id: projected_days_remaining
+    unit_of_measurement: d
+    accuracy_decimals: 1
+    update_interval: 60s
+    lambda: |-
+      const float current = id(propane_remaining_kg).state;
+      if (isnan(current)) return NAN;
+      const int count = id(propane_hist_count);
+      if (count == 0) return NAN;
+      float used, hours;
+      if (count < 24) {
+        // Less than 24h of data — fall back to last 1h sample
+        if (id(propane_hist_0) < 0.0f) return NAN;
+        used = id(propane_hist_0) - current;
+        hours = 1.0f;
+      } else {
+        // Full 24h window available
+        if (id(propane_hist_23) < 0.0f) return NAN;
+        used = id(propane_hist_23) - current;
+        hours = 24.0f;
+      }
+      if (used <= 0.0f) return NAN;
+      const float rate_per_day = (used / hours) * 24.0f;
+      return current / rate_per_day;
   - platform: template
     name: "Tank Percent Full"
     id: tank_percent_full

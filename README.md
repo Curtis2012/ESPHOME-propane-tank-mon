@@ -45,6 +45,8 @@ The project exposes:
 - `Tank 1 Tare Weight`, `Tank 1 Capacity`, and `Tank 1 Regulator Weight`
 - `Tank 2 Tare Weight`, `Tank 2 Capacity`, and `Tank 2 Regulator Weight`
 - `Propane Remaining` in kilograms
+- `Propane Used (24h)` in kilograms
+- `Projected Days Remaining` in days, based on the most recent 24 hours of consumption
 - `Propane Fill Level` as a percentage
 - `Sensor Update Period` in seconds
 
@@ -63,6 +65,13 @@ The fill calculation uses the active profile:
 - Effective empty weight = tare + regulator
 - Propane remaining = measured weight - effective empty weight (clamped to 0..capacity)
 - Fill level = remaining / capacity
+
+The runtime projection sensors use a rolling hourly history:
+
+- `Propane Used (24h)` = propane level from 24 hours ago minus current propane level (never negative)
+- `Projected Days Remaining` = current propane remaining / `Propane Used (24h)`
+
+These two values stay unavailable until 24 hourly samples have been collected after boot (about 24 hours).
 
 Use `Sensor Update Period` to control how often the HX711 is polled, without reflashing.
 
