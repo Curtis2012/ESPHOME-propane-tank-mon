@@ -143,6 +143,25 @@ globals:
     type: float
     restore_value: no
     initial_value: "-1.0"
+  - id: last_low_propane_alarm_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+script:
+  - id: emit_low_propane_alarm
+    mode: restart
+    then:
+      - logger.log:
+          level: WARN
+          format: "Low propane alert emitted"
+      - binary_sensor.template.publish:
+          id: low_propane_alert
+          state: ON
+      - delay: 1s
+      - binary_sensor.template.publish:
+          id: low_propane_alert
+          state: OFF
 
 select:
   - platform: template
@@ -257,6 +276,26 @@ number:
     max_value: 3600
     step: 1
     initial_value: ${update_period_default_s}
+  - platform: template
+    name: "Low Propane Alert Threshold"
+    id: low_propane_alert_threshold_pct
+    unit_of_measurement: "%"
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 10
+  - platform: template
+    name: "Low Propane Alarm Ignore Period"
+    id: low_propane_alarm_ignore_period_min
+    unit_of_measurement: min
+    optimistic: true
+    restore_value: true
+    min_value: 1
+    max_value: 1440
+    step: 1
+    initial_value: 120
 
 interval:
   - interval: 1s
@@ -304,6 +343,27 @@ interval:
 
           if (id(propane_hist_count) < 24) {
             id(propane_hist_count) += 1;
+          }
+  - interval: 5s
+    then:
+      - lambda: |-
+          const float pct = id(tank_percent_full).state;
+          const float threshold = id(low_propane_alert_threshold_pct).state;
+          const float ignore_period_min = id(low_propane_alarm_ignore_period_min).state;
+          if (isnan(pct) || isnan(threshold) || isnan(ignore_period_min) || ignore_period_min <= 0.0f) {
+            return;
+          }
+
+          if (pct > threshold) {
+            return;
+          }
+
+          const uint32_t now = millis();
+          const uint32_t ignore_period_ms = (uint32_t) (ignore_period_min * 60000.0f);
+          const uint32_t elapsed = now - id(last_low_propane_alarm_ms);
+          if (id(last_low_propane_alarm_ms) == 0 || elapsed >= ignore_period_ms) {
+            id(last_low_propane_alarm_ms) = now;
+            id(emit_low_propane_alarm).execute();
           }
 
 sensor:
@@ -439,3 +499,20 @@ sensor:
     update_interval: 5s
     lambda: |-
       return id(tank_percent_full).state;
+
+binary_sensor:
+  - platform: template
+    name: "Low Propane"
+    id: low_propane
+    device_class: problem
+    lambda: |-
+      const float pct = id(tank_percent_full).state;
+      const float threshold = id(low_propane_alert_threshold_pct).state;
+      if (isnan(pct) || isnan(threshold)) {
+        return false;
+      }
+      return pct <= threshold;
+  - platform: template
+    name: "Low Propane Alert"
+    id: low_propane_alert
+    device_class: problem

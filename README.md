@@ -49,6 +49,10 @@ The project exposes:
 - `Projected Days Remaining` in days, based on the most recent 24 hours of consumption
 - `Propane Fill Level` as a percentage
 - `Sensor Update Period` in seconds
+- `Low Propane Alert Threshold` as a percentage (default 10%)
+- `Low Propane Alarm Ignore Period` in minutes (default 120)
+- `Low Propane` binary sensor (true when fill level is at or below threshold)
+- `Low Propane Alert` pulse-style binary sensor for one-shot alert events
 
 To calibrate the scale, replace the placeholder `calibrate_linear` points with your own known readings. Once the weight reading is correct, set each tank profile using tare weight, propane capacity, and regulator weight.
 
@@ -74,6 +78,12 @@ The runtime projection sensors use a rolling hourly history:
 These two values stay unavailable until 24 hourly samples have been collected after boot (about 24 hours).
 
 Use `Sensor Update Period` to control how often the HX711 is polled, without reflashing.
+
+Low propane alarm behavior:
+
+- If `Tank Percent Full` is less than or equal to `Low Propane Alert Threshold`, the device emits `Low Propane Alert`.
+- After an alert is emitted, no new alert is emitted until `Low Propane Alarm Ignore Period` has elapsed.
+- Defaults are 10% threshold and 120 minutes (2 hours) ignore period.
 
 ## Notes
 
