@@ -465,7 +465,8 @@ sensor:
       }
       if (used <= 0.0f) return NAN;
       const float rate_per_day = (used / hours) * 24.0f;
-      return current / rate_per_day;
+      const float projected_days = current / rate_per_day;
+      return (projected_days > 90.0f) ? 90.0f : projected_days;
   - platform: template
     name: "Tank Percent Full"
     id: tank_percent_full
