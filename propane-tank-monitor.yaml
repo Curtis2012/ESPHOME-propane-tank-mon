@@ -463,7 +463,8 @@ sensor:
         used = id(propane_hist_23) - current;
         hours = 24.0f;
       }
-      if (used <= 0.0f) return NAN;
+      // No measurable consumption — tank has gas but rate is indeterminate; cap at 90d
+      if (used <= 0.0f) return (current > 0.0f) ? 90.0f : NAN;
       const float rate_per_day = (used / hours) * 24.0f;
       const float projected_days = current / rate_per_day;
       return (projected_days > 90.0f) ? 90.0f : projected_days;
